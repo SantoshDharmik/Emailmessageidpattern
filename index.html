@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Pattern Generator PRO</title>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+tailwind.config = {
+darkMode: 'class'
+}
+</script>
+
+<style>
+.fadeIn{animation:fade .6s ease}
+@keyframes fade{
+from{opacity:0;transform:translateY(25px)}
+to{opacity:1;transform:translateY(0)}
+}
+</style>
+
+</head>
+
+<body class="bg-gray-100 text-black dark:bg-gray-900 dark:text-white transition-all flex flex-col min-h-screen">
+
+<!-- SIMPLE HEADER -->
+<header class="bg-blue-600 text-white px-6 py-3 shadow flex justify-between items-center">
+<div class="font-bold text-lg">📧 Email Pattern Tool</div>
+<div class="text-sm opacity-90">Fast Generator System</div>
+</header>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="flex-grow flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-700 p-4">
+
+<div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md fadeIn">
+
+<h2 class="text-2xl font-bold text-center text-blue-600 mb-6">
+Email Tool Login
+</h2>
+
+<input id="nameInput" placeholder="Enter Name"
+class="w-full border p-2 rounded mb-3 focus:outline-blue-500">
+
+<input id="emailInput" placeholder="Enter Email"
+class="w-full border p-2 rounded mb-4 focus:outline-blue-500">
+
+<button id="loginBtn"
+class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-semibold">
+Enter Tool
+</button>
+
+</div>
+</div>
+
+<!-- TOOL PAGE -->
+<div id="toolPage" class="hidden p-4 md:p-6 flex-grow">
+
+<div class="max-w-6xl mx-auto">
+
+<div class="flex flex-wrap justify-between items-center mb-4 gap-3">
+<h1 class="text-2xl md:text-3xl font-bold">
+⚡ Email Pattern Generator
+</h1>
+
+<button id="modeBtn"
+class="bg-indigo-600 text-white px-3 py-1 rounded">
+Dark / Light
+</button>
+</div>
+
+<div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow">
+
+<label class="font-semibold">
+Paste Multiple Message-ID
+</label>
+
+<textarea id="msgInput"
+class="w-full mt-2 p-3 rounded border bg-white text-black dark:bg-gray-900 dark:text-white h-40"></textarea>
+
+<div class="flex flex-wrap gap-2 mt-3">
+<button id="genBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Generate</button>
+<button id="copyBtn" class="bg-green-600 text-white px-4 py-2 rounded">Copy</button>
+<button id="clearBtn" class="bg-yellow-600 text-white px-4 py-2 rounded">Clear</button>
+</div>
+
+<label class="font-semibold block mt-4">
+Output
+</label>
+
+<textarea id="output"
+class="w-full mt-2 p-3 rounded border bg-white text-black dark:bg-gray-900 dark:text-white h-40"></textarea>
+
+</div>
+
+<div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow mt-6">
+
+<div class="flex justify-between items-center">
+<h2 class="font-bold text-lg">History</h2>
+
+<div class="flex gap-2">
+<button id="selectAllBtn" class="bg-indigo-600 text-white px-3 py-1 rounded text-sm">
+Select All
+</button>
+
+<button id="deleteBtn" class="bg-red-600 text-white px-3 py-1 rounded text-sm">
+Delete
+</button>
+</div>
+</div>
+
+<div id="history" class="mt-3 space-y-2 max-h-80 overflow-y-auto"></div>
+
+</div>
+</div>
+</div>
+
+<!-- SIMPLE FOOTER -->
+<footer class="bg-gray-800 text-gray-200 text-center py-3 text-sm">
+Copyright ©2026; Designed by SANTOSH
+</footer>
+
+<script>
+
+// LOGIN
+const loginPage = document.getElementById("loginPage")
+const toolPage = document.getElementById("toolPage")
+const loginBtn = document.getElementById("loginBtn")
+
+loginBtn.onclick = function(){
+
+let name = document.getElementById("nameInput").value.trim()
+let email = document.getElementById("emailInput").value.trim()
+
+if(!name || !email){
+alert("Enter Name & Email")
+return
+}
+
+sessionStorage.setItem("userSession","yes")
+
+loginPage.style.display="none"
+toolPage.style.display="block"
+}
+
+if(sessionStorage.getItem("userSession")){
+loginPage.style.display="none"
+toolPage.style.display="block"
+}
+
+document.getElementById("emailInput")
+.addEventListener("keypress",e=>{
+if(e.key==="Enter") loginBtn.click()
+})
+
+// DARK MODE
+document.getElementById("modeBtn").onclick=()=>{
+document.documentElement.classList.toggle("dark")
+}
+
+// ===== REST SAME =====
+
+function detectType(str){
+if(/[^a-zA-Z0-9]/.test(str)) return {err:"Unsupported char"}
+if(/^[0-9]+$/.test(str)) return {pat:`[[num(${str.length})]]`}
+if(/^[a-z]+$/.test(str)) return {pat:`[[smallchar(${str.length})]]`}
+if(/^[A-Z]+$/.test(str)) return {pat:`[[bigchar(${str.length})]]`}
+if(/^[a-z0-9]+$/.test(str)) return {pat:`[[mixsmallalphanum(${str.length})]]`}
+if(/^[A-Z0-9]+$/.test(str)) return {pat:`[[mixbigalphanum(${str.length})]]`}
+return {pat:`[[mixallalphanum(${str.length})]]`}
+}
+
+function makePattern(val){
+if(!val.includes("@")) return {err:"Missing @"}
+val = val.replace(/^</,"").replace(/>$/,"")
+let parts = val.split("@")
+let left = parts[0]
+let right = "@"+parts.slice(1).join("@")
+if(/--|\.\./.test(left)) return {err:"Empty segment"}
+let seps = left.match(/[-\.]/g) || []
+let seg = left.split(/[-\.]/)
+let pattern = "<[[time()]]"
+for(let i=0;i<seg.length;i++){
+let d = detectType(seg[i])
+if(d.err) return {err:d.err}
+pattern += d.pat
+if(i<seps.length) pattern+=seps[i]
+}
+pattern += right + ">"
+return {pat:pattern}
+}
+
+document.getElementById("genBtn").onclick=function(){
+let text = document.getElementById("msgInput").value.trim()
+if(!text) return
+let lines = text.split(/\n+/)
+let out=[]
+lines.forEach(id=>{
+let r = makePattern(id.trim())
+if(r.err){
+out.push("⚠ "+id+" → ERROR: "+r.err)
+}else{
+out.push(r.pat)
+saveHistory(id,r.pat)
+}
+})
+document.getElementById("output").value = out.join("\n")
+renderHistory()
+}
+
+document.getElementById("copyBtn").onclick=function(){
+let t = document.getElementById("output")
+t.select()
+document.execCommand("copy")
+}
+
+document.getElementById("clearBtn").onclick=function(){
+document.getElementById("output").value=""
+}
+
+function saveHistory(id,pat){
+let arr = JSON.parse(localStorage.getItem("histUltra")||"[]")
+arr.unshift({id,pat})
+localStorage.setItem("histUltra",JSON.stringify(arr))
+}
+
+function renderHistory(){
+let arr = JSON.parse(localStorage.getItem("histUltra")||"[]")
+let box = document.getElementById("history")
+box.innerHTML=""
+arr.forEach((h,i)=>{
+box.innerHTML+=`
+<div class="border p-2 rounded dark:border-gray-700">
+<div class="flex gap-2">
+<input type="checkbox" class="chk mt-1">
+<div class="text-xs">
+<div class="text-gray-600 dark:text-gray-300 break-all">MSGID: ${h.id}</div>
+<div class="text-green-600 dark:text-green-400 break-all">PATTERN: ${h.pat}</div>
+</div>
+</div>
+</div>`
+})
+}
+
+document.getElementById("selectAllBtn").onclick=function(){
+document.querySelectorAll(".chk").forEach(c=>c.checked=true)
+}
+
+document.getElementById("deleteBtn").onclick=function(){
+let arr = JSON.parse(localStorage.getItem("histUltra")||"[]")
+let checks = document.querySelectorAll(".chk")
+let newArr=[]
+checks.forEach((c,i)=>{
+if(!c.checked) newArr.push(arr[i])
+})
+localStorage.setItem("histUltra",JSON.stringify(newArr))
+renderHistory()
+}
+
+renderHistory()
+
+</script>
+
+</body>
+</html>
